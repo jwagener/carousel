@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+	<title>The Carousel</title>
+  <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>	
+	<script src="http://connect.soundcloud.com/sdk.js"></script>
+	<script src="http://cdn.openkeyval.org/statics/openkeyval.js"></script>
+	
+	<script>
+	  SC.initialize({
+	    client_id: "YOUR_CLIENT_ID"
+	  });
+
+
+   var slideClickTrackId = 27266065;
+   var slideClick;
+	  
+	  var trackId = 27264724;
+	  
+	  var drapperMode = false;
+	  
+	  if(drapperMode){
+	    trackId = 26976919;
+	  }
+	  
+	  function slideshow(trackId, images){
+	    console.log(images);
+	    abc = SC.stream(trackId, {
+	      autoPlay: true,
+	      onload: function(){
+	        var sound = this;
+	        
+	        $.each(images, function(){
+	          console.log(image);
+	          var image = this;
+	          sound.onposition(image.timestamp, function() {
+              console.log(image.url)
+	            slideClick.play();
+	            //nextImage(images);
+	            updateImage(image.url);
+            });
+          });
+	      },
+	      onplay: function(){
+	        $("#image").show();
+	      },
+	      onfinish:function() {
+	        $("#image").hide();
+        }
+	    });
+	  }
+  
+	  function adjustResize(){
+	    $("#page").height($(window).height());
+	    
+	    $("#outercanvas").height($(window).width());
+	    
+	    $("#image").width($("#image").height());
+	  }
+	  
+	  function updateImage(image){
+	    $("img").attr("src", image);
+	  }
+	  
+	  $(function(){
+	    // load slideClick
+	    SC.whenStreamingReady(function(){
+	      SC.stream(slideClickTrackId, {autoLoad: true, onload: function(){
+  	      slideClick = this;
+  	    }});
+	      var uri = new SC.URI(window.location.toString(), {decodeFragment: true, decodeQuery: true});
+	      var at = uri.fragment.access_token;
+        
+	      window.remoteStorage.getItem(uri.query.k, function(val){
+	        var slideConf = uri.decodeParams(val)
+	        var i=0;
+	        var images = $.map(slideConf.timestamp, function(timestamp){
+	          var timestamp = parseInt(timestamp, 10)
+	          if(timestamp > 0){
+	            return {
+	              "timestamp": timestamp,
+	              "url": slideConf.url[i++]
+	            }
+            } 
+	        });
+	        
+	        slideshow(slideConf.trackId, images);
+	      });
+	    });
+
+	    adjustResize();
+	  });
+	  
+	  $(window).resize(adjustResize);
+	</script>
+	
+	
+	<script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-26838742-1']);
+    _gaq.push(['_trackPageview']);
+
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
+  </script>
+</head>
+
+<body>
+  <div id="page">
+    <div id="outercanvas">
+      <div id="canvas">
+        <img id="image" src="http://www.dotkimelman.com/transparent_gif.gif" style="display: none;" />
+      </div>
+    </div>
+    <!-- <iframe src="//www.facebook.com/plugins/like.php?href=http%3A%2F%2Fcarousel.ponyho.st%2F%3Fk%3DCAR15040&amp;send=false&amp;layout=standard&amp;width=450&amp;show_faces=true&amp;action=like&amp;colorscheme=dark&amp;font&amp;height=80&amp;appId=286157711395914" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:450px; height:80px;" allowTransparency="true"></iframe> -->
+  </div>
+</body>
+</html>

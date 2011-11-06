@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+	<title>Carousel Builder</title>
+         <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+	<script src="http://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.8.13/jquery-ui.min.js"></script>
+	
+	<script src="//connect.soundcloud.com/sdk.js"></script>
+
+	<script src="jquery.tmp.js"></script>
+
+	<script>
+	var rootUrl;
+	$(function(){
+	  var uri = new SC.URI(window.location.toString(), {decodeFragment: true});
+	  var at = uri.fragment.access_token;
+    
+	  uri.path = "/";
+	  uri.fragment = undefined;
+	  rootUrl = uri.toString();
+    
+    if(at){
+      $.ajax({
+        dataType: "JSONP",
+        url: "https://api.instagram.com/v1/users/self/media/recent?callback=?&access_token=" + at,
+        success: function(r){
+          $.each(r.data, function(){
+            var image = {
+              url: this.images.standard_resolution.url,
+              timestamp: null
+            }
+            $("#imageTmpl").tmpl(image).appendTo("#images");
+          });
+          $("#images").sortable();
+        }
+      });
+      $(".connect").hide();
+    }else{
+      
+    }
+	});
+	
+	function randomKey(){
+	  return "CAR" + parseInt(Math.random()* 55555, 10);
+	}
+	
+	function generate(key){
+	  key = key || randomKey();
+	  $("#openkeyval input").attr("name", key).val($("#form").serialize());
+    $("#openkeyval").submit();
+	  $("#link").val(rootUrl + "?k=" + key);
+	  
+	  $("#step3").show();
+	}
+	
+	
+	
+	var draperTimestamps = [	3161,  7460,  18460,  28828,  38816,  45897,  57529,  67897,  77380,  80920,  90150,  96725,  101277,  110127];
+	$("#draperMode").live("click", function(){
+	  var i =0
+	  $.each(draperTimestamps, function(){
+	    var ts = this;
+	    $($(".image")[i]).find(".timestamp").val(ts);
+	    i++;
+	  });
+	
+	  $("#trackId").val("26976919");
+	  
+	  generate();
+	});
+	
+	$(".delete").live("click", function(){
+	  $(this).closest(".image").remove();
+	  
+	});
+	
+	$(window).keydown(function(e){
+	  if(e.keyCode == 32) { //spacebar
+	    e.preventDefault();
+	    var $highlight = $(".image.highlight");
+	    
+	    if($highlight.length == 0){
+	      $highlight = $(".image").first();
+	    }else{
+	      $highlight = $highlight.next();
+	    }
+	    
+	    $highlight.addClass("highlight").siblings().removeClass("highlight")
+	  }
+	});
+	
+	</script>
+	<script id="imageTmpl" type="text/x-jquery-tmpl">
+	  <li class="image">
+	  <img src="${url}" />
+	  <input type="text" name="url[]" value="${url}" />
+	  <input type="text" name="timestamp[]" class="timestamp" value="${timestamp}" />
+	  <button class="delete">X</button>
+	  </li>
+  </script>
+  
+</head>
+<body class="builder">
+  <h1>Carousel Builder</h1>
+  <form id="form" action="">
+  <div class="step">
+    
+    <h2>Step 1: Pick some images and arrange them to your slideshow</h2>
+    <a href="https://instagram.com/oauth/authorize/?client_id=c8b97e3a8e3f4cfe8274ad1c26da1d77&redirect_uri=http://localhost:3005/builder.html&response_type=token" class="connect">Connect to Instagram</a>
+    <a href="https://instagram.com/oauth/authorize/?client_id=95ee14ed94f046d89b6746b02ea0ecb5&redirect_uri=http://carousel.ponyho.st/builder.html&response_type=token" class="connect">Connect to instagram</a>
+    
+    <ul id="images"></ul>
+  </div>
+
+  <div class="step">
+    <h2>Step 2: Pick a sound</h2>
+    
+    <button id="draperMode">Let Don Draper do the talking</button>
+    <span>or tell your own story!</span>
+    <p>(Hit spacebar while recording to show the first image or slide to the next image)</p>
+    
+    
+    <script src="http://connect.soundcloud.com/sdk.js"></script>  
+    <script>
+      SC.initialize({
+        client_id:    "c202b469a633a7a5b15c9e10b5272b78",
+        redirect_uri: "http://connect.soundcloud.com/examples/callback.html"
+      });
+
+      $("#recorderUI.reset #controlButton").live("click", function(e){
+        updateTimer(0);
+        SC.record({
+          start: function(){
+            setRecorderUIState("recording");
+          },
+          progress: function(ms, avgPeak){
+            updateTimer(ms);
+          }
+        });
+        e.preventDefault();
+      });
+
+      $("#recorderUI.recording #controlButton, #recorderUI.playing #controlButton").live("click", function(e){
+        setRecorderUIState("recorded");
+        SC.recordStop();
+        e.preventDefault();
+      });
+
+      $("#recorderUI.recorded #controlButton").live("click", function(e){
+        updateTimer(0);
+        setRecorderUIState("playing");
+        SC.recordPlay({
+          progress: function(ms){
+            updateTimer(ms);
+          },
+          finished: function(){
+            setRecorderUIState("recorded");
+          }
+        });
+        e.preventDefault();
+      });
+
+      $("#reset").live("click", function(e){
+        SC.recordStop();
+        setRecorderUIState("reset");
+        e.preventDefault();
+      });
+
+      $("#upload").live("click", function(e){
+        setRecorderUIState("uploading");
+
+        var upload = function(){
+          $("#uploadStatus").html("Uploading...");
+          
+          var key = randomKey();
+          var url = "http://carousel.ponyho.st/?k=" + key;
+          SC.recordUpload({
+            track: {
+              title: "Carousel Recording",
+              sharing: "public",
+              video_url: url,
+              description: "Carousel Recording for a slideshow: " + url
+            }
+          }, function(track){
+            $("#trackId").val(track.id);
+            generate(key);
+          });
+        }
+
+        if(SC.isConnected()){
+          upload();
+        }else{
+          SC.connect({
+            connected: upload
+          });
+        }
+
+        e.preventDefault();
+      });
+
+      function updateTimer(ms){
+        $("#timer").text(SC.Helper.millisecondsToHMS(ms));
+      }
+
+      function setRecorderUIState(state){
+        // state can be reset, recording, recorded, playing, uploading
+        // visibility of buttons is managed via CSS
+        $("#recorderUI").attr("class", state);
+      }
+    </script>
+
+    <div id="recorderUI" class="reset">
+      <a href="#" id="controlButton" class="record"><span id="timer" class="hidden">0:00</span></a>
+      <div id="otherControls">
+        <a href="#" id="reset" class="button">Reset</a>
+        <a href="#" id="upload" class="button">Publish Slideshow!</a>
+      </div>
+      <div id="uploadStatus"></div>
+    </div>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <input type="hidden" name="trackId" id="trackId" value="27264724" />
+    
+  </div>
+  
+  <div class="step" id="step3" style="display: none">
+    <h2>Step 3: Enjoy and share your slideshow!</h2>
+    <input type="text" id="link" value="" />
+  </div>
+  </div>
+  </form>
+  <form id="openkeyval" action="http://api.openkeyval.org/" method="POST" target="hidden">
+    <input type="hidden" name="" value="">
+  </form>
+  <iframe name="hidden" style="display:none;" />
+</body>
+</html>
